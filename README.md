@@ -1,5 +1,25 @@
-# Vue 3 + Vite
+📌 应用简介
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+开发一款英语学习助手的软件，含有打卡功能、词库功能、社区功能等，持续升级迭代。
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+🚀 体验入口
+
+可通过以下地址在线体验应用功能：
+
+http://43.138.175.29
+
+💡 核心用途
+
+- 编码Agent生成测试：验证Agent生成的准确性、完整性
+
+- 功能场景测试：模拟不同输入下的Agent响应的测试
+
+- 工具适配测试：适配各类编码场景的Agent兼容性测试
+
+⚠️ 注意事项
+
+1. 本应用仅用于测试用途，请勿用于生产环境或正式业务场景；
+
+2. 体验过程中若遇到异常，请记录场景并反馈；
+
+3. 体验地址若无法访问，请检查网络连接或联系相关维护人员。
