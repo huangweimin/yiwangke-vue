@@ -48,7 +48,10 @@ const store = createStore({
     
     // 词库数据
     words: [],
-    roots: []
+    roots: [],
+    
+    // 挑战数据
+    challenges: []
   },
   
   mutations: {
@@ -96,6 +99,10 @@ const store = createStore({
       state.roots = roots
     },
     
+    SET_CHALLENGES(state, challenges) {
+      state.challenges = challenges
+    },
+    
     INCREMENT_TODAY_LEARNED(state) {
       state.stats.todayLearned++
     },
@@ -126,26 +133,26 @@ const store = createStore({
     // 加载用户数据
     async loadUserData({ commit, dispatch }) {
       try {
-        const isLoggedIn = dispatch('checkLogin')
+        // 检查登录状态
+        dispatch('checkLogin')
         
         // 从 API 加载词库
-        const words = await api.getWords()
-        commit('LOAD_WORDS', words)
-        commit('UPDATE_STATS', { totalWords: words.length })
-        
-        if (!isLoggedIn) {
-          return
-        }
+        const wordsData = await api.getWords()
+        commit('LOAD_WORDS', wordsData.words || [])
+        commit('UPDATE_STATS', { totalWords: wordsData.total || 0 })
         
         // 已登录，从 API 加载更多信息
         try {
-          const [profile, stats] = await Promise.all([
+          const [profile, stats, challenges] = await Promise.all([
             api.getProfile(),
-            api.getStats()
+            api.getStats(),
+            api.getChallenges()
           ])
           
+          commit('SET_LOGIN_STATUS', true)
           commit('INIT_USER', profile)
           commit('UPDATE_STATS', stats)
+          commit('SET_CHALLENGES', challenges)
         } catch (e) {
           console.error('加载用户信息失败:', e)
         }
@@ -192,11 +199,7 @@ const store = createStore({
           newCount: task.newCount,
           completed: false
         })
-        commit('UPDATE_STATS', {
-          todayLearned: task.todayLearned,
-          todayReviewed: task.todayReviewed,
-          streakDays: task.streakDays
-        })
+        // 不再从 getTodayTask 覆盖今日已学数据，保持 getStats 的值
       } catch (e) {
         console.error('获取今日任务失败:', e)
       }

@@ -60,6 +60,7 @@ export const api = {
   getTodayTask: () => instance.get('/learn/today-task'),
   submitReview: (data) => instance.post('/learn/review', data),
   learnNewWord: (data) => instance.post('/learn/new', data),
+  addToReview: (data) => instance.post('/learn/add-to-review', data),
   getStats: () => instance.get('/learn/stats'),
   
   // 挑战

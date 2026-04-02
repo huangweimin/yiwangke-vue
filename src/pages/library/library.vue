@@ -189,6 +189,7 @@ export default {
       limit: 30,
       hasMore: false,
       loading: false,
+      scrollLoading: false,
       selectedWord: null
     }
   },
@@ -309,14 +310,32 @@ export default {
       return map[status] || status
     },
     
-    startLearn(word) {
-      this.closeModal()
-      this.$router.push('/learn')
+    async startLearn(word) {
+      // 检查是否已在学习中
+      if (word.learn_status === 'learning') {
+        alert('已在学习中')
+        return
+      }
+      // 开始学习 +1 今日已学
+      try {
+        await api.learnNewWord({ wordId: word.word_id })
+        word.learn_status = 'learning'
+        alert('已加入学习中')
+        this.closeModal()
+      } catch (e) {
+        alert('添加失败')
+      }
     },
     
-    addToReview(word) {
-      this.closeModal()
-      // 调用API添加到复习
+    async addToReview(word) {
+      try {
+        await api.addToReview({ wordId: word.word_id })
+        word.learn_status = 'learning'
+        alert('已加入学习中')
+        this.closeModal()
+      } catch (e) {
+        alert('添加失败')
+      }
     },
     
     goToRoot(root) {
@@ -324,12 +343,20 @@ export default {
     },
     
     handleScroll() {
+      // 防止重复触发
+      if (this.scrollLoading) return
+      this.scrollLoading = true
+      
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       const scrollHeight = document.documentElement.scrollHeight
       const clientHeight = document.documentElement.clientHeight
       
       if (scrollHeight - scrollTop - clientHeight < 100 && this.hasMore && !this.loading) {
-        this.loadMore()
+        this.loadMore().finally(() => {
+          this.scrollLoading = false
+        })
+      } else {
+        this.scrollLoading = false
       }
     }
   }

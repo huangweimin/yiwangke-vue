@@ -1,139 +1,208 @@
 <template>
-  <view class="container">
-    <view class="header">
-      <text class="word">{{ word.word }}</text>
-      <text class="phonetic">{{ word.phonetic }}</text>
-    </view>
+  <div class="page">
+    <!-- 顶部导航 -->
+    <div class="header">
+      <span class="back-btn" @click="goBack">←</span>
+      <span class="header-title">单词详情</span>
+      <span class="speaker-btn" @click="speakWord">🔊</span>
+    </div>
     
-    <view class="content">
-      <!-- 词根解析 -->
-      <view class="section" v-if="word.roots && word.roots.length">
-        <view class="section-title">💡 词根解析</view>
-        <view class="roots-list">
-          <view class="root-item" v-for="root in word.roots" :key="root">
-            <text class="root-name">{{ root }}</text>
-            <text class="root-meaning" v-if="getRootMeaning(root)">{{ getRootMeaning(root) }}</text>
-          </view>
-        </view>
-      </view>
-      
-      <!-- 释义 -->
-      <view class="section">
-        <view class="section-title">📖 释义</view>
-        <view class="definition">
-          <text class="pos">[{{ word.pos }}]</text>
-          {{ word.definition }}
-        </view>
-      </view>
-      
-      <!-- 家族词汇 -->
-      <view class="section" v-if="word.family && word.family.length">
-        <view class="section-title">📦 家族词汇</view>
-        <view class="family-list">
-          <text 
-            class="family-word" 
-            v-for="(w, idx) in word.family" 
-            :key="idx"
-          >{{ w }}</text>
-        </view>
-      </view>
-      
-      <!-- 例句 -->
-      <view class="section" v-if="word.examples && word.examples.length">
-        <view class="section-title">📝 例句</view>
-        <view class="example-list">
-          <view class="example-item" v-for="(ex, idx) in word.examples" :key="idx">
-            {{ ex }}
-          </view>
-        </view>
-      </view>
-      
-      <!-- 搭配 -->
-      <view class="section" v-if="word.collocations && word.collocations.length">
-        <view class="section-title">🔗 搭配</view>
-        <view class="collocations-list">
-          <text 
-            class="collocation" 
-            v-for="(col, idx) in word.collocations" 
-            :key="idx"
-          >{{ col }}</text>
-        </view>
-      </view>
-    </view>
+    <!-- 单词信息 -->
+    <div class="word-info" v-if="word.word">
+      <div class="word-main">
+        <span class="word-text">{{ word.word }}</span>
+        <span class="phonetic">{{ word.phonetic }}</span>
+      </div>
+      <div class="pos-tag">[{{ word.pos }}]</div>
+    </div>
     
-    <!-- 底部操作 -->
-    <view class="footer">
-      <button class="share-btn" @tap="shareWord">
-        <text>📤 分享</text>
+    <!-- 释义 -->
+    <div class="section" v-if="word.definition">
+      <div class="section-title">📖 释义</div>
+      <div class="definition">{{ word.definition }}</div>
+    </div>
+    
+    <!-- 词根解析 -->
+    <div class="section" v-if="word.roots && word.roots.length">
+      <div class="section-title">💡 词根解析</div>
+      <div class="roots-list">
+        <span 
+          class="root-tag" 
+          v-for="root in word.roots" 
+          :key="root"
+          @click="goToRoot(root)"
+        >
+          {{ root }}
+        </span>
+      </div>
+    </div>
+    
+    <!-- 家族词汇 -->
+    <div class="section" v-if="word.family && word.family.length">
+      <div class="section-title">📦 家族词汇</div>
+      <div class="family-list">
+        <span 
+          class="family-word" 
+          v-for="fw in word.family" 
+          :key="fw"
+        >
+          {{ fw }}
+        </span>
+      </div>
+    </div>
+    
+    <!-- 例句 -->
+    <div class="section" v-if="word.examples && word.examples.length">
+      <div class="section-title">📝 例句</div>
+      <div class="example-text">{{ word.examples[0] }}</div>
+    </div>
+    
+    <!-- 操作按钮 -->
+    <div class="action-buttons" v-if="word.word">
+      <button class="action-btn secondary" @click="goBack">
+        返回
       </button>
-      <button class="add-btn" @tap="addToNewWords">
-        <text>📝 加入生词本</text>
+      <button class="action-btn primary" @click="startLearn">
+        开始学习
       </button>
-    </view>
-  </view>
+      <button class="action-btn secondary" @click="addToReview">
+        加入复习
+      </button>
+    </div>
+    
+    <!-- 加载状态 -->
+    <div class="loading" v-if="loading">
+      加载中...
+    </div>
+    
+    <!-- 不存在 -->
+    <div class="not-found" v-if="!loading && !word.word">
+      <p>单词不存在</p>
+      <button @click="goBack">返回</button>
+    </div>
+  </div>
 </template>
 
 <script>
-import { mapState } from 'vuex'
+import api from '@/utils/api.js'
 
 export default {
   data() {
     return {
-      word: {}
+      word: {},
+      loading: false
     }
   },
   
-  computed: {
-    ...mapState(['roots'])
-  },
-  
-  onLoad(options) {
-    const wordId = options.id
+  mounted() {
+    const wordId = this.$route.params.id || this.$route.query.id
     if (wordId) {
       this.loadWord(wordId)
     }
   },
   
   methods: {
-    loadWord(wordId) {
-      const word = this.$store.state.words.find(w => w.word_id === wordId)
-      if (word) {
-        this.word = word
-      } else {
-        alert('单词不存在')
-        this.$router.back()
+    async loadWord(wordId) {
+      this.loading = true
+      try {
+        const data = await api.getWord(wordId)
+        this.word = data
+      } catch (e) {
+        console.error('加载单词失败:', e)
+        this.word = {}
+      } finally {
+        this.loading = false
       }
     },
     
-    getRootMeaning(root) {
-      const rootData = this.roots.find(r => r.root === root)
-      return rootData ? `${rootData.meaning}（${rootData.origin}）` : ''
+    speakWord() {
+      if (!this.word || !this.word.word) return
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+        const utterance = new SpeechSynthesisUtterance(this.word.word)
+        utterance.lang = 'en-US'
+        utterance.rate = 0.85
+        window.speechSynthesis.speak(utterance)
+      }
     },
     
-    shareWord() {
-      alert('功能开发中')
+    goBack() {
+      this.$router.back()
     },
     
-    addToNewWords() {
-      alert('已加入生词本')
+    goToRoot(root) {
+      this.$router.push(`/root/${root}`)
+    },
+    
+    async startLearn() {
+      if (this.word.learn_status === 'learning') {
+        alert('已在学习中')
+        return
+      }
+      try {
+        await api.learnNewWord({ wordId: this.word.word_id })
+        this.word.learn_status = 'learning'
+        alert('已加入学习中')
+      } catch (e) {
+        alert('添加失败')
+      }
+    },
+    
+    async addToReview() {
+      try {
+        await api.addToReview({ wordId: this.word.word_id })
+        this.word.learn_status = 'learning'
+        alert('已加入复习队列')
+      } catch (e) {
+        alert('添加失败')
+      }
     }
   }
 }
 </script>
 
 <style scoped>
-.container {
+.page {
   min-height: 100vh;
   background-color: #FFFFFF;
+  padding-bottom: 100px;
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background-color: #F8F9FA;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.back-btn {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.speaker-btn {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.word-info {
   padding: 32px 20px;
   text-align: center;
   background-color: #F8F9FA;
 }
 
-.word {
+.word-main {
+  margin-bottom: 12px;
+}
+
+.word-text {
   display: block;
   font-size: 36px;
   font-weight: 600;
@@ -146,12 +215,14 @@ export default {
   color: #999999;
 }
 
-.content {
-  padding: 20px;
+.pos-tag {
+  font-size: 14px;
+  color: #4A90D9;
 }
 
 .section {
-  margin-bottom: 24px;
+  padding: 20px;
+  border-bottom: 1px solid #F5F5F5;
 }
 
 .section-title {
@@ -160,40 +231,25 @@ export default {
   margin-bottom: 12px;
 }
 
-.roots-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.root-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.root-name {
-  padding: 6px 12px;
-  background-color: #4A90D9;
-  color: #FFFFFF;
-  font-size: 14px;
-  border-radius: 16px;
-}
-
-.root-meaning {
-  font-size: 14px;
-  color: #666666;
-}
-
 .definition {
   font-size: 16px;
   color: #333333;
   line-height: 1.6;
 }
 
-.pos {
-  color: #4A90D9;
-  margin-right: 8px;
+.roots-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.root-tag {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #4A90D9, #67AAFF);
+  color: #FFFFFF;
+  font-size: 14px;
+  border-radius: 16px;
+  cursor: pointer;
 }
 
 .family-list {
@@ -210,36 +266,17 @@ export default {
   border-radius: 4px;
 }
 
-.example-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.example-item {
+.example-text {
   font-size: 14px;
   color: #666666;
   line-height: 1.6;
   font-style: italic;
-  padding-left: 12px;
-  border-left: 3px solid #E5E5E5;
+  padding: 12px;
+  background-color: #F8F9FA;
+  border-radius: 8px;
 }
 
-.collocations-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.collocation {
-  padding: 4px 10px;
-  background-color: #F5F5F5;
-  color: #666666;
-  font-size: 13px;
-  border-radius: 4px;
-}
-
-.footer {
+.action-buttons {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -251,24 +288,43 @@ export default {
   border-top: 1px solid #F0F0F0;
 }
 
-.share-btn,
-.add-btn {
+.action-btn {
   flex: 1;
   height: 44px;
+  border: none;
   border-radius: 22px;
   font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  cursor: pointer;
 }
 
-.share-btn {
-  background-color: #F5F5F5;
-  color: #333333;
-}
-
-.add-btn {
-  background-color: #4A90D9;
+.action-btn.primary {
+  background: linear-gradient(135deg, #4A90D9, #67AAFF);
   color: #FFFFFF;
+}
+
+.action-btn.secondary {
+  background-color: #F5F5F5;
+  color: #666666;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.not-found {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.not-found button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: #4A90D9;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
 }
 </style>

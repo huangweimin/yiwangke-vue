@@ -187,6 +187,17 @@ export default {
     }
   },
   
+  watch: {
+    words: {
+      handler(newWords) {
+        if (newWords && newWords.length > 0 && !this.recommendedWord) {
+          this.setRecommendedWord()
+        }
+      },
+      immediate: true
+    }
+  },
+  
   async mounted() {
     this.checkLogin()
     await this.loadUserData()
