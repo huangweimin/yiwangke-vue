@@ -95,6 +95,9 @@
         </div>
       </div>
       
+      <!-- 滚动监控哨兵（IntersectionObserver 自动管理生命周期） -->
+      <div ref="sentinel" class="scroll-sentinel"></div>
+      
       <!-- 加载提示 -->
       <div class="loading-more" v-if="loading">
         <span>加载中...</span>
@@ -189,9 +192,7 @@ export default {
       limit: 30,
       hasMore: false,
       loading: false,
-      scrollLoading: false,
-      isScrollHandlerActive: false,
-      scrollDebounceTimer: null,
+      observer: null,
       selectedWord: null
     }
   },
@@ -206,22 +207,13 @@ export default {
   },
   
   async mounted() {
-    // 标记已挂载完成，然后才能触发滚动加载
-    this.$nextTick(() => {
-      this.isScrollHandlerActive = true
-    })
     await this.loadWords()
     this.loadCategories()
-    window.addEventListener('scroll', this.handleScroll)
+    this.initObserver()
   },
   
   beforeDestroy() {
-    this.isScrollHandlerActive = false
-    window.removeEventListener('scroll', this.handleScroll)
-    if (this.scrollDebounceTimer) {
-      clearTimeout(this.scrollDebounceTimer)
-      this.scrollDebounceTimer = null
-    }
+    this.destroyObserver()
   },
   
   methods: {
@@ -360,30 +352,28 @@ export default {
       this.$router.push(`/root/${root}`)
     },
     
-    handleScroll() {
-      // 组件未完全挂载时不处理
-      if (!this.isScrollHandlerActive) return
+    // 初始化 IntersectionObserver，自动随组件销毁而清理
+    initObserver() {
+      if (!this.$refs.sentinel) return
       
-      // 防抖：500ms 内不重复处理
-      if (this.scrollDebounceTimer) return
-      this.scrollDebounceTimer = setTimeout(() => {
-        this.scrollDebounceTimer = null
-      }, 500)
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0]
+          if (entry.isIntersecting && this.hasMore && !this.loading) {
+            this.loadMore()
+          }
+        },
+        { rootMargin: '100px' }
+      )
       
-      // 防止重复触发
-      if (this.scrollLoading) return
-      if (!this.hasMore || this.loading) return
-      
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      const scrollHeight = document.documentElement.scrollHeight
-      const clientHeight = document.documentElement.clientHeight
-      
-      // 判断是否接近底部（距离底部 100px 时触发）
-      if (scrollHeight - scrollTop - clientHeight < 100) {
-        this.scrollLoading = true
-        this.loadMore().finally(() => {
-          this.scrollLoading = false
-        })
+      this.observer.observe(this.$refs.sentinel)
+    },
+    
+    // 销毁 Observer
+    destroyObserver() {
+      if (this.observer) {
+        this.observer.disconnect()
+        this.observer = null
       }
     }
   }
@@ -567,6 +557,11 @@ export default {
   padding: 16px;
   color: #999;
   font-size: 13px;
+}
+
+.scroll-sentinel {
+  height: 1px;
+  width: 100%;
 }
 
 .empty-state {
