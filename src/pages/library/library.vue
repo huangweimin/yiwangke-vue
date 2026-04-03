@@ -190,6 +190,8 @@ export default {
       hasMore: false,
       loading: false,
       scrollLoading: false,
+      isScrollHandlerActive: false,
+      scrollDebounceTimer: null,
       selectedWord: null
     }
   },
@@ -204,13 +206,22 @@ export default {
   },
   
   async mounted() {
+    // 标记已挂载完成，然后才能触发滚动加载
+    this.$nextTick(() => {
+      this.isScrollHandlerActive = true
+    })
     await this.loadWords()
     this.loadCategories()
     window.addEventListener('scroll', this.handleScroll)
   },
   
   beforeDestroy() {
+    this.isScrollHandlerActive = false
     window.removeEventListener('scroll', this.handleScroll)
+    if (this.scrollDebounceTimer) {
+      clearTimeout(this.scrollDebounceTimer)
+      this.scrollDebounceTimer = null
+    }
   },
   
   methods: {
@@ -350,20 +361,29 @@ export default {
     },
     
     handleScroll() {
+      // 组件未完全挂载时不处理
+      if (!this.isScrollHandlerActive) return
+      
+      // 防抖：500ms 内不重复处理
+      if (this.scrollDebounceTimer) return
+      this.scrollDebounceTimer = setTimeout(() => {
+        this.scrollDebounceTimer = null
+      }, 500)
+      
       // 防止重复触发
       if (this.scrollLoading) return
-      this.scrollLoading = true
+      if (!this.hasMore || this.loading) return
       
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       const scrollHeight = document.documentElement.scrollHeight
       const clientHeight = document.documentElement.clientHeight
       
-      if (scrollHeight - scrollTop - clientHeight < 100 && this.hasMore && !this.loading) {
+      // 判断是否接近底部（距离底部 100px 时触发）
+      if (scrollHeight - scrollTop - clientHeight < 100) {
+        this.scrollLoading = true
         this.loadMore().finally(() => {
           this.scrollLoading = false
         })
-      } else {
-        this.scrollLoading = false
       }
     }
   }
