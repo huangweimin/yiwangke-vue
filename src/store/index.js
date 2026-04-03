@@ -136,10 +136,14 @@ const store = createStore({
         // 检查登录状态
         dispatch('checkLogin')
         
-        // 从 API 加载词库
-        const wordsData = await api.getWords()
-        commit('LOAD_WORDS', wordsData?.words || [])
-        commit('UPDATE_STATS', { totalWords: wordsData?.total || 0 })
+        // 从 API 加载词库（仅获取总数，不加载完整列表）
+        // 完整词库由词库页面通过 loadWords action 单独加载
+        try {
+          const wordsData = await api.getWords({ page: 1, limit: 1 })
+          commit('UPDATE_STATS', { totalWords: wordsData?.total || 0 })
+        } catch (e) {
+          console.error('获取词库总数失败:', e)
+        }
         
         // 已登录，从 API 加载更多信息（ stats 单独处理，任一失败不影响其他）
         try {

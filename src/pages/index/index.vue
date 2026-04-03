@@ -105,24 +105,6 @@
       </div>
     </div>
     
-    <!-- 每日推荐 -->
-    <div class="word-tip-card" v-if="recommendedWord" @click="showWordDetail">
-      <div class="tip-header">
-        <span class="tip-title">💡 今日推荐</span>
-      </div>
-      <div class="tip-content">
-        <div class="tip-word">
-          <span class="word-text">{{ recommendedWord.word }}</span>
-          <span class="word-phonetic">{{ recommendedWord.phonetic }}</span>
-        </div>
-        <div class="tip-root" v-if="recommendedWord.roots && recommendedWord.roots.length">
-          <span class="root-tag" v-for="r in recommendedWord.roots" :key="r">{{ r }}</span>
-        </div>
-        <div class="tip-def">{{ recommendedWord.definition }}</div>
-      </div>
-      <div class="tip-action">点击查看详情 ›</div>
-    </div>
-    
     <!-- 底部导航 -->
     <div class="tab-bar">
       <div class="tab-item active">
@@ -150,13 +132,11 @@ import { mapState, mapActions } from 'vuex'
 
 export default {
   data() {
-    return {
-      recommendedWord: null
-    }
+    return {}
   },
   
   computed: {
-    ...mapState(['user', 'stats', 'todayTask', 'settings', 'isLoggedIn', 'words']),
+    ...mapState(['user', 'stats', 'todayTask', 'settings', 'isLoggedIn']),
     
     canStart() {
       return !this.isTodayComplete && 
@@ -187,33 +167,14 @@ export default {
     }
   },
   
-  watch: {
-    words: {
-      handler(newWords) {
-        if (newWords && newWords.length > 0 && !this.recommendedWord) {
-          this.setRecommendedWord()
-        }
-      },
-      immediate: true
-    }
-  },
-  
   async mounted() {
     this.checkLogin()
     await this.loadUserData()
     await this.calculateTodayTask()
-    this.setRecommendedWord()
   },
   
   methods: {
     ...mapActions(['loadUserData', 'calculateTodayTask', 'checkLogin']),
-    
-    setRecommendedWord() {
-      if (this.words && this.words.length > 0) {
-        const randomIndex = Math.floor(Math.random() * this.words.length)
-        this.recommendedWord = this.words[randomIndex]
-      }
-    },
     
     startLearn() {
       const mode = this.todayTask.reviewCount > 0 ? 'review' : 'new'
@@ -223,12 +184,6 @@ export default {
     
     goLogin() {
       this.$router.push('/login')
-    },
-    
-    showWordDetail() {
-      if (this.recommendedWord) {
-        this.$router.push(`/word/${this.recommendedWord.word_id}`)
-      }
     }
   }
 }
@@ -470,67 +425,6 @@ export default {
 .stat-label {
   font-size: 12px;
   color: #999999;
-}
-
-.word-tip-card {
-  margin: 12px 16px;
-  padding: 16px;
-  background-color: #FFFFFF;
-  border-radius: 12px;
-  cursor: pointer;
-}
-
-.tip-header {
-  margin-bottom: 12px;
-}
-
-.tip-title {
-  font-size: 14px;
-  color: #666666;
-}
-
-.tip-word {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 8px;
-}
-
-.word-text {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333333;
-  margin-right: 8px;
-}
-
-.word-phonetic {
-  font-size: 14px;
-  color: #999999;
-}
-
-.tip-root {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.root-tag {
-  padding: 4px 10px;
-  background-color: #4A90D9;
-  color: #FFFFFF;
-  font-size: 12px;
-  border-radius: 12px;
-}
-
-.tip-def {
-  font-size: 14px;
-  color: #666666;
-}
-
-.tip-action {
-  font-size: 12px;
-  color: #4A90D9;
-  text-align: right;
-  margin-top: 8px;
 }
 
 /* 底部导航 */
