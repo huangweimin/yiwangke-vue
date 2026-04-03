@@ -141,20 +141,33 @@ const store = createStore({
         commit('LOAD_WORDS', wordsData.words || [])
         commit('UPDATE_STATS', { totalWords: wordsData.total || 0 })
         
-        // 已登录，从 API 加载更多信息
+        // 已登录，从 API 加载更多信息（ stats 单独处理，任一失败不影响其他）
         try {
-          const [profile, stats, challenges] = await Promise.all([
-            api.getProfile(),
-            api.getStats(),
-            api.getChallenges()
-          ])
-          
+          const profile = await api.getProfile()
           commit('SET_LOGIN_STATUS', true)
           commit('INIT_USER', profile)
-          commit('UPDATE_STATS', stats)
-          commit('SET_CHALLENGES', challenges)
         } catch (e) {
           console.error('加载用户信息失败:', e)
+        }
+        
+        try {
+          const stats = await api.getStats()
+          commit('UPDATE_STATS', {
+            todayLearned: stats.todayLearned || 0,
+            todayReviewed: stats.todayReviewed || 0,
+            masteredWords: stats.masteredWords || 0,
+            streakDays: stats.streakDays || 0,
+            lastStudyDate: stats.lastStudyDate || null
+          })
+        } catch (e) {
+          console.error('获取统计数据失败:', e)
+        }
+        
+        try {
+          const challenges = await api.getChallenges()
+          commit('SET_CHALLENGES', challenges)
+        } catch (e) {
+          console.error('获取挑战数据失败:', e)
         }
         
       } catch (e) {
@@ -205,8 +218,24 @@ const store = createStore({
       }
     },
     
+    // 获取并同步后端统计（修复今日已学数据）
+    async fetchStats({ commit }) {
+      try {
+        const stats = await api.getStats()
+        commit('UPDATE_STATS', {
+          todayLearned: stats.todayLearned || 0,
+          todayReviewed: stats.todayReviewed || 0,
+          masteredWords: stats.masteredWords || 0,
+          streakDays: stats.streakDays || 0,
+          lastStudyDate: stats.lastStudyDate || null
+        })
+      } catch (e) {
+        console.error('获取统计失败:', e)
+      }
+    },
+    
     // 提交复习评分
-    async submitReview({ commit, state }, { wordId, quality }) {
+    async submitReview({ commit, dispatch, state }, { wordId, quality }) {
       if (!state.isLoggedIn) {
         // 未登录模式
         commit('INCREMENT_TODAY_REVIEWED')
@@ -216,6 +245,8 @@ const store = createStore({
       try {
         const res = await api.submitReview({ wordId, quality })
         commit('INCREMENT_TODAY_REVIEWED')
+        // 同步后端真实数据
+        await dispatch('fetchStats')
         return res
       } catch (e) {
         console.error('提交复习失败:', e)
@@ -224,7 +255,7 @@ const store = createStore({
     },
     
     // 学习新词
-    async learnNewWord({ commit, state }, wordId) {
+    async learnNewWord({ commit, dispatch, state }, wordId) {
       if (!state.isLoggedIn) {
         commit('INCREMENT_TODAY_LEARNED')
         return { success: true }
@@ -233,6 +264,8 @@ const store = createStore({
       try {
         const res = await api.learnNewWord({ wordId })
         commit('INCREMENT_TODAY_LEARNED')
+        // 同步后端真实数据
+        await dispatch('fetchStats')
         return res
       } catch (e) {
         console.error('学习新词失败:', e)
