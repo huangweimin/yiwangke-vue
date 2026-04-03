@@ -156,8 +156,16 @@ export default {
         // 从 API 获取今日任务
         const task = await api.getTodayTask()
         
+        if (!task) {
+          this.wordList = []
+          this.totalCount = 0
+          this.isComplete = true
+          this.loading = false
+          return
+        }
+        
         // 设置学习模式
-        this.isReviewMode = task.reviewCount > 0
+        this.isReviewMode = (task.reviewCount || 0) > 0
         
         // 设置单词列表
         if (this.isReviewMode) {
@@ -245,7 +253,7 @@ export default {
     async loadNewWords() {
       try {
         const task = await api.getTodayTask()
-        this.wordList = task.newWords || []
+        this.wordList = task?.newWords || []
         this.totalCount = this.wordList.length
         if (this.totalCount === 0) {
           this.isComplete = true

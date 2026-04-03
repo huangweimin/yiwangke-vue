@@ -257,7 +257,7 @@ export default {
         if (this.filterType !== 'all') {
           params.type = this.filterType
         }
-        this.posts = await api.getPosts(params)
+        this.posts = await api.getPosts(params) || []
       } catch (e) {
         console.error('加载动态失败:', e)
       }
@@ -265,7 +265,7 @@ export default {
     
     async loadLeaderboard() {
       try {
-        this.leaderboard = await api.getLeaderboard({ type: this.rankType })
+        this.leaderboard = await api.getLeaderboard({ type: this.rankType }) || []
       } catch (e) {
         console.error('加载排行榜失败:', e)
       }
@@ -278,8 +278,10 @@ export default {
     async toggleLike(post) {
       try {
         const result = await api.toggleLike(post.id)
-        post.is_liked = result.liked
-        post.like_count += result.liked ? 1 : -1
+        if (result) {
+          post.is_liked = result.liked
+          post.like_count += result.liked ? 1 : -1
+        }
       } catch (e) {
         console.error('点赞失败:', e)
       }
@@ -299,7 +301,7 @@ export default {
     async loadComments(postId) {
       try {
         const comments = await api.getComments(postId)
-        this.postComments[postId] = comments
+        this.postComments[postId] = comments || []
       } catch (e) {
         console.error('加载评论失败:', e)
       }

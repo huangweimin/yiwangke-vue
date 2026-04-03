@@ -236,14 +236,21 @@ export default {
         
         const data = await api.getWords(params)
         
-        if (reset) {
-          this.words = data.words
-        } else {
-          this.words = [...this.words, ...data.words]
+        if (!data) {
+          this.words = []
+          this.total = 0
+          this.hasMore = false
+          return
         }
         
-        this.total = data.total
-        this.hasMore = data.hasMore
+        if (reset) {
+          this.words = data.words || []
+        } else {
+          this.words = [...this.words, ...(data.words || [])]
+        }
+        
+        this.total = data.total || 0
+        this.hasMore = data.hasMore || false
         this.categories = data.categories || []
         
       } catch (e) {
@@ -256,7 +263,7 @@ export default {
     async loadCategories() {
       try {
         const data = await api.getWords({ limit: 1 })
-        this.categories = data.categories || []
+        this.categories = data?.categories || []
       } catch (e) {
         console.error('加载分类失败:', e)
       }

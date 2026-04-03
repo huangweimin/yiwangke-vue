@@ -28,7 +28,7 @@ instance.interceptors.request.use(
 // 响应拦截器：处理错误
 instance.interceptors.response.use(
   response => {
-    return response.data
+    return response?.data ?? null
   },
   error => {
     if (error.response) {
@@ -38,9 +38,9 @@ instance.interceptors.response.use(
         localStorage.removeItem('userInfo')
         window.location.href = '/login'
       }
-      return Promise.reject(error.response.data)
+      return Promise.reject(error.response?.data ?? null)
     }
-    return Promise.reject(error)
+    return Promise.reject(error?.message ? new Error(error.message) : error)
   }
 )
 

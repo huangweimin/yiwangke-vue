@@ -138,8 +138,8 @@ const store = createStore({
         
         // 从 API 加载词库
         const wordsData = await api.getWords()
-        commit('LOAD_WORDS', wordsData.words || [])
-        commit('UPDATE_STATS', { totalWords: wordsData.total || 0 })
+        commit('LOAD_WORDS', wordsData?.words || [])
+        commit('UPDATE_STATS', { totalWords: wordsData?.total || 0 })
         
         // 已登录，从 API 加载更多信息（ stats 单独处理，任一失败不影响其他）
         try {
@@ -152,20 +152,22 @@ const store = createStore({
         
         try {
           const stats = await api.getStats()
-          commit('UPDATE_STATS', {
-            todayLearned: stats.todayLearned || 0,
-            todayReviewed: stats.todayReviewed || 0,
-            masteredWords: stats.masteredWords || 0,
-            streakDays: stats.streakDays || 0,
-            lastStudyDate: stats.lastStudyDate || null
-          })
+          if (stats) {
+            commit('UPDATE_STATS', {
+              todayLearned: stats.todayLearned || 0,
+              todayReviewed: stats.todayReviewed || 0,
+              masteredWords: stats.masteredWords || 0,
+              streakDays: stats.streakDays || 0,
+              lastStudyDate: stats.lastStudyDate || null
+            })
+          }
         } catch (e) {
           console.error('获取统计数据失败:', e)
         }
         
         try {
           const challenges = await api.getChallenges()
-          commit('SET_CHALLENGES', challenges)
+          commit('SET_CHALLENGES', challenges || [])
         } catch (e) {
           console.error('获取挑战数据失败:', e)
         }
@@ -207,12 +209,13 @@ const store = createStore({
       // 已登录，从 API 获取
       try {
         const task = await api.getTodayTask()
-        commit('SET_TODAY_TASK', {
-          reviewCount: task.reviewCount,
-          newCount: task.newCount,
-          completed: false
-        })
-        // 不再从 getTodayTask 覆盖今日已学数据，保持 getStats 的值
+        if (task) {
+          commit('SET_TODAY_TASK', {
+            reviewCount: task.reviewCount || 0,
+            newCount: task.newCount || 0,
+            completed: false
+          })
+        }
       } catch (e) {
         console.error('获取今日任务失败:', e)
       }
@@ -222,13 +225,15 @@ const store = createStore({
     async fetchStats({ commit }) {
       try {
         const stats = await api.getStats()
-        commit('UPDATE_STATS', {
-          todayLearned: stats.todayLearned || 0,
-          todayReviewed: stats.todayReviewed || 0,
-          masteredWords: stats.masteredWords || 0,
-          streakDays: stats.streakDays || 0,
-          lastStudyDate: stats.lastStudyDate || null
-        })
+        if (stats) {
+          commit('UPDATE_STATS', {
+            todayLearned: stats.todayLearned || 0,
+            todayReviewed: stats.todayReviewed || 0,
+            masteredWords: stats.masteredWords || 0,
+            streakDays: stats.streakDays || 0,
+            lastStudyDate: stats.lastStudyDate || null
+          })
+        }
       } catch (e) {
         console.error('获取统计失败:', e)
       }

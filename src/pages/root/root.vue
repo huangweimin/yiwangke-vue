@@ -76,7 +76,7 @@ export default {
       this.loading = true
       try {
         const data = await api.getRootDetail(root)
-        this.rootData = data
+        this.rootData = data || {}
       } catch (e) {
         console.error('加载词根详情失败:', e)
       } finally {

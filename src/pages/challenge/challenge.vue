@@ -188,11 +188,11 @@ export default {
       try {
         // 获取挑战列表
         const challenges = await api.getChallenges()
-        this.challenges = challenges
+        this.challenges = challenges || []
         
         // 获取今日状态
         const status = await api.getChallengeStatus()
-        this.todayChecked = status.checkedIn
+        this.todayChecked = status?.checkedIn || false
         
         // 获取打卡记录
         const records = await api.getCheckinRecords({

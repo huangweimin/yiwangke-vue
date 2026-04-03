@@ -106,7 +106,7 @@ export default {
       this.loading = true
       try {
         const data = await api.getWord(wordId)
-        this.word = data
+        this.word = data || {}
       } catch (e) {
         console.error('加载单词失败:', e)
         this.word = {}
