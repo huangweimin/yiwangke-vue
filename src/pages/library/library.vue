@@ -273,7 +273,12 @@ export default {
     },
     
     async loadMore() {
+      // 增加 page * limit < total 的判断，防止无限请求
       if (!this.hasMore || this.loading) return
+      if (this.page * this.limit >= this.total) {
+        this.hasMore = false
+        return
+      }
       this.page++
       await this.loadWords()
     },
